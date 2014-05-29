@@ -1,6 +1,6 @@
 package io.github.vladast.yetanotherusbdeviceenumerator.usb;
 
-public class UsbDeviceData {
+public class UsbDeviceDescriptor {
 	private short vendorId;
 	private short productId;
 	private byte usbClass;
