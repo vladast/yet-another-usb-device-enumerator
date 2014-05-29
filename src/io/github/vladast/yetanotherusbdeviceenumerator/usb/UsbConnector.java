@@ -3,8 +3,12 @@
  */
 package io.github.vladast.yetanotherusbdeviceenumerator.usb;
 
+import java.util.ArrayList;
+
+import io.github.vladast.avrcommunicator.AvrRecorderConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 
@@ -16,16 +20,18 @@ public class UsbConnector {
 	
 	public static final String TAG = UsbConnector.class.getSimpleName();
 	
-	private static final int MSG_POLL_DEVICES		= 0x0001;
-	private static final int MSG_DEVICE_PROPS_READ	= 0x0002;
+	private static final int MSG_POLL_DEVICES			= 0x0001;
+	private static final int MSG_DEVICE_DETECTED		= 0x0002;
+	private static final int MSG_DEVICES_DETECTED		= 0x0003;
+	private static final int MSG_DEVICE_DESCRIPTOR_READ	= 0x0004;
 	
 	private UsbManager mUsbManager;
 	private Handler mConnectorEventHandler;
-	private UsbConnectorEventListener mUsbConnectorEventListener;
+	private OnUsbConnectorEventListener mUsbConnectorEventListener;
 	
 	private boolean mSearch;
 	
-	UsbConnector(UsbManager usbManager) {
+	public UsbConnector(UsbManager usbManager) {
 		mUsbManager = usbManager;
 		mSearch = true;
 		mConnectorEventHandler = new Handler() {
@@ -34,17 +40,21 @@ public class UsbConnector {
 	            switch (msg.what) {
 		            case MSG_POLL_DEVICES:
 		            	mUsbConnectorEventListener.OnDebugMessage("Received MSG_POLL_DEVICES message");
+		            	mUsbConnectorEventListener.OnPollingDevices();
 		            	if(mSearch)
 		            	{
-		            		//checkDeviceStatus();
+		            		pollDevices();
 		            		mConnectorEventHandler.sendEmptyMessageDelayed(MSG_POLL_DEVICES, 1000);
 		            	}
 		            	break;
-	                case MSG_DEVICE_DETECTED:
-	                	mUsbConnectorEventListener.OnDebugMessage("Received MSG_DEVICE_DETECTED message");
-	                	mUsbConnectorEventListener.OnDeviceConnected();
-	                	//readDeviceData((UsbDevice)msg.obj);
+	                case MSG_DEVICE_DESCRIPTOR_READ:
+	                	mUsbConnectorEventListener.OnDebugMessage("Received MSG_DEVICE_DESCRIPTOR_READ message");
+	                	mUsbConnectorEventListener.OnDeviceDescriptorRead((UsbDeviceDescriptor)msg.obj);
 	                    break;
+	                case MSG_DEVICE_DETECTED:
+	                	break;
+	                case MSG_DEVICES_DETECTED:
+	                	break;
 	                default:
 	                    super.handleMessage(msg);
 	                    break;
@@ -52,4 +62,41 @@ public class UsbConnector {
 	        }
 	    };	
 	}
+	
+	protected void pollDevices() {
+		mUsbConnectorEventListener.OnDebugMessage("Enumerating devices...");
+        
+    	new AsyncTask<Void, Void, ArrayList<UsbDevice>>() {
+
+			@Override
+			protected ArrayList<UsbDevice> doInBackground(Void... arg0) {
+				
+				ArrayList<UsbDevice> usbDevices = new ArrayList<UsbDevice>();
+				
+				for (final UsbDevice usbDevice : mUsbManager.getDeviceList().values()) {
+					mUsbConnectorEventListener.OnDebugMessage(String.format("Found device 0x04%x/0x04%x", usbDevice.getVendorId(), usbDevice.getDeviceId()));
+					usbDevices.add(usbDevice);
+				}
+				
+				return usbDevices;
+			}
+    		
+			protected void onPostExecute(ArrayList<UsbDevice> usbDevices) {
+				if(usbDevices != null && usbDevices.size() > 0) {
+					Message msg = new Message();
+					if(usbDevices.size() > 1) {
+						msg.what = MSG_DEVICES_DETECTED;
+						msg.obj = usbDevices;
+					} else {
+						msg.what = MSG_DEVICE_DETECTED;
+						msg.obj = usbDevices.get(0);
+					}
+					mConnectorEventHandler.removeMessages(MSG_POLL_DEVICES);
+					mConnectorEventHandler.sendMessage(msg);
+				}
+			}
+			
+    	}.execute((Void)null);
+	}
+	
 }
