@@ -4,6 +4,7 @@ public class UsbDeviceDescriptor {
 	private short vendorId;
 	private short productId;
 	private byte usbClass;
+	private byte usbSubClass;
 	private byte usbProtocol;
 	/**
 	 * @return the vendorId
@@ -52,6 +53,18 @@ public class UsbDeviceDescriptor {
 	 */
 	public void setUsbProtocol(byte usbProtocol) {
 		this.usbProtocol = usbProtocol;
+	}
+	/**
+	 * @return the usbSubClass
+	 */
+	public byte getUsbSubClass() {
+		return usbSubClass;
+	}
+	/**
+	 * @param usbSubClass the usbSubClass to set
+	 */
+	public void setUsbSubClass(byte usbSubClass) {
+		this.usbSubClass = usbSubClass;
 	}
 	
 	

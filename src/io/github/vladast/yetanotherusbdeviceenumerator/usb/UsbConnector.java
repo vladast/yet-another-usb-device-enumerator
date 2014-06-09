@@ -5,7 +5,6 @@ package io.github.vladast.yetanotherusbdeviceenumerator.usb;
 
 import java.util.ArrayList;
 
-import io.github.vladast.avrcommunicator.AvrRecorderConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
@@ -63,6 +62,10 @@ public class UsbConnector {
 	    };	
 	}
 	
+	public void registerListener(OnUsbConnectorEventListener onUsbConnectorEventListener) {
+		mUsbConnectorEventListener = onUsbConnectorEventListener;
+	}
+	
 	protected void pollDevices() {
 		mUsbConnectorEventListener.OnDebugMessage("Enumerating devices...");
         
@@ -74,7 +77,7 @@ public class UsbConnector {
 				ArrayList<UsbDevice> usbDevices = new ArrayList<UsbDevice>();
 				
 				for (final UsbDevice usbDevice : mUsbManager.getDeviceList().values()) {
-					mUsbConnectorEventListener.OnDebugMessage(String.format("Found device 0x04%x/0x04%x", usbDevice.getVendorId(), usbDevice.getDeviceId()));
+					mUsbConnectorEventListener.OnDebugMessage(String.format("Found device 0x%04x/0x%04x", usbDevice.getVendorId(), usbDevice.getProductId()));
 					usbDevices.add(usbDevice);
 				}
 				
@@ -97,6 +100,14 @@ public class UsbConnector {
 			}
 			
     	}.execute((Void)null);
+	}
+	
+	public void startPolling() {
+		mConnectorEventHandler.sendEmptyMessage(MSG_POLL_DEVICES);
+	}
+	
+	public void stopPolling() {
+		mConnectorEventHandler.removeMessages(MSG_POLL_DEVICES);
 	}
 	
 }

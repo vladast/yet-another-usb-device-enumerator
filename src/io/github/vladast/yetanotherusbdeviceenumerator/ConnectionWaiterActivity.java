@@ -1,12 +1,17 @@
 package io.github.vladast.yetanotherusbdeviceenumerator;
 
+import io.github.vladast.yetanotherusbdeviceenumerator.usb.OnUsbConnectorEventListener;
+import io.github.vladast.yetanotherusbdeviceenumerator.usb.UsbConnector;
+import io.github.vladast.yetanotherusbdeviceenumerator.usb.UsbDeviceDescriptor;
 import io.github.vladast.yetanotherusbdeviceenumerator.util.SystemUiHider;
-
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
+import android.hardware.usb.UsbManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -16,7 +21,10 @@ import android.view.View;
  * 
  * @see SystemUiHider
  */
-public class ConnectionWaiterActivity extends Activity {
+public class ConnectionWaiterActivity extends Activity implements OnUsbConnectorEventListener {
+	
+	private final String TAG = ConnectionWaiterActivity.class.getSimpleName();
+	
 	/**
 	 * Whether or not the system UI should be auto-hidden after
 	 * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -45,6 +53,8 @@ public class ConnectionWaiterActivity extends Activity {
 	 */
 	private SystemUiHider mSystemUiHider;
 
+	private UsbConnector mUsbConnector;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -54,6 +64,10 @@ public class ConnectionWaiterActivity extends Activity {
 		final View controlsView = findViewById(R.id.fullscreen_content_controls);
 		final View contentView = findViewById(R.id.fullscreen_content);
 
+		mUsbConnector = new UsbConnector((UsbManager)getSystemService(Context.USB_SERVICE));
+		mUsbConnector.registerListener(this);
+		
+		
 		// Set up an instance of SystemUiHider to control the system UI for
 		// this activity.
 		mSystemUiHider = SystemUiHider.getInstance(this, contentView,
@@ -116,8 +130,22 @@ public class ConnectionWaiterActivity extends Activity {
 		// while interacting with the UI.
 		findViewById(R.id.dummy_button).setOnTouchListener(
 				mDelayHideTouchListener);
+		
+		
 	}
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mUsbConnector.startPolling();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mUsbConnector.stopPolling();
+    }	
+	
 	@Override
 	protected void onPostCreate(Bundle savedInstanceState) {
 		super.onPostCreate(savedInstanceState);
@@ -158,5 +186,27 @@ public class ConnectionWaiterActivity extends Activity {
 	private void delayedHide(int delayMillis) {
 		mHideHandler.removeCallbacks(mHideRunnable);
 		mHideHandler.postDelayed(mHideRunnable, delayMillis);
+	}
+
+	@Override
+	public void OnPollingDevices() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnDeviceDescriptorRead(UsbDeviceDescriptor usbDeviceData) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnErrorMessage(String message) {
+		Log.e(TAG, message);
+	}
+
+	@Override
+	public void OnDebugMessage(String message) {
+		Log.d(TAG, message);
 	}
 }
